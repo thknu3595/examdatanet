@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="Black">
+    <option name="sdkName" value="Python 3.9 (venv) (4)" />
+  </component>
   <component name="ProjectRootManager">
     <output url="file://$APPLICATION_HOME_DIR$/jbr/bin/Desktop/examdatanet/out" />
   </component>

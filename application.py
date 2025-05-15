@@ -57,28 +57,35 @@ def server(ip, port, discard_seq=None):
     seq, ack, flags, recv_window, _ = parse_packet(data)
     if flags & FLAG_SYN:
         print("SYN packet is received")
+
+        # Send SYN-ACK back to client to confirm connection initiation
         synack_packet = create_packet(0, seq+1, FLAG_SYN | FLAG_ACK, 15 )
         sock.sendto(synack_packet, addr)
         print("SYN-ACK packet is sent")
+
+        #Wait for final ACK from client
         data, addr = sock.recvfrom(1024)
         seq, ack, flags, recv_window, _ = parse_packet(data)
         if flags & FLAG_ACK:
             print("ACK packet is received")
             print("Connection established")
 
-    received_data = {}
-    expected_seq = 1
-    start_time = time.time()
-    total_bytes = 0
 
-    seen_out_of_order = set()
+    received_data = {}   #Stores all received packets by sequence number
+    expected_seq = 1     #Next number expected from sender
+    start_time = time.time() #used for throughput calculation
+    total_bytes = 0    #total payload received
 
+    seen_out_of_order = set() #tracks out-of-order packets to avoid duplicates
+
+    #Main Packet Receiving Loop
     while True:
         try:
             packet, addr = sock.recvfrom(2048)
             seq, ack, flags, recv_window, data = parse_packet(packet)
             now = time.strftime('%H:%M:%S', time.localtime()) + f".{int(time.time()*1000000)%1000000:06d}"[-6:]
 
+            #Handle FIN: client signals end of transfer
             if flags & FLAG_FIN:
                 print("FIN packet is received")
                 finack_packet = create_packet(0, seq+1, FLAG_FIN | FLAG_ACK, 0)
@@ -86,22 +93,28 @@ def server(ip, port, discard_seq=None):
                 print("FIN ACK packet is sent")
                 break
 
+            #Simulate packet loss if the discard seq is matching
             if seq == discard_seq:
                 print(f"Discarding packet {seq}")
-                discard_seq = 99999999  # discard bare én gang
+                discard_seq = 99999999  # discard only once
                 continue
 
+            #In-order packet received
             if seq == expected_seq:
                 now = time.strftime('%H:%M:%S')
                 print(f"{now} -- packet {seq} is received")
+
+                #Send ACK for received packet
                 ack_packet = create_packet(0, seq, FLAG_ACK, 15)
                 sock.sendto(ack_packet, addr)
                 print(f"{now} -- sending ack for the received {seq}")
+
+
                 received_data[seq] = data
                 total_bytes += len(data)
                 expected_seq += 1
             else:
-                # Ignorer pakker som kommer feil
+                # Out-of-order packet (ignore,but log once)
                 if seq not in seen_out_of_order:
                     now = time.strftime('%H:%M:%S')
                     print(f"{now} -- out-of-order packet {seq} is received")
@@ -109,14 +122,15 @@ def server(ip, port, discard_seq=None):
                 continue
 
         except socket.timeout:
-            continue
+            continue  #Retry receiving if nothing is received in timeout window
 
+    #After the transfer: Calculate throughput
     end_time = time.time()
     throughput = (total_bytes * 8) / (end_time - start_time) / 1_000_000
     print(f"The throughput is {throughput:.2f} Mbps")
     print("Connection Closes")
 
-    # Save file
+    # Save file in correct order
     with open("received_file", 'wb') as f:
         for i in range(1, expected_seq):
             f.write(received_data[i])
@@ -138,20 +152,25 @@ def client(ip, port, file_path, window_size):
     sock.sendto(syn_packet, addr)
     print("SYN packet is sent")
 
+    #Wait for SYN-ACK from server
     data, addr = sock.recvfrom(1024)
     seq, ack, flags, recv_window, _ = parse_packet(data)
     if flags & FLAG_SYN and flags & FLAG_ACK:
         print("SYN-ACK packet is received")
+
+        #Send final ack to complete handshake
         ack_packet = create_packet(0, seq+1, FLAG_ACK, 0)
         sock.sendto(ack_packet, addr)
         print("ACK packet is sent")
         print("Connection established")
 
+    #Set actual values based on what the server allows
     window_size = min(window_size, recv_window)
     base = 1
     next_seq = 1
     packets = []
 
+    #Read file and split into packets
     with open(file_path, 'rb') as f:
         while True:
             chunk = f.read(DATA_SIZE)
@@ -161,10 +180,11 @@ def client(ip, port, file_path, window_size):
             next_seq += 1
 
     total_packets = len(packets)
-    next_seq = 1
+    next_seq = 1 #reset to begin sending
 
     # Send packets med Go-Back-N
     while base <= total_packets:
+        #send packets within the window limit
         while next_seq < base + window_size and next_seq <= total_packets:
             now = time.strftime('%H:%M:%S', time.localtime()) + f".{int(time.time()*1000000)%1000000:06d}"[-6:]
             sock.sendto(packets[next_seq-1], addr)
@@ -179,9 +199,10 @@ def client(ip, port, file_path, window_size):
             if flags & FLAG_ACK:
                 print(f"{time.strftime('%H:%M:%S')}.{str(time.time()).split('.')[1][:6]} -- ACK for packet = {ack} is received")
 
+                #Slide window forward
                 base = ack + 1
         except socket.timeout:
-            # Timeout, resend alle pakker i vinduet
+            # if timeout happens, retransmit all unacknowledged packets
             print(f"{time.strftime('%H:%M:%S')}.{str(time.time()).split('.')[1][:6]} -- RTO occured")
             for i in range(base, next_seq):
                 sock.sendto(packets[i-1], addr)
@@ -190,7 +211,8 @@ def client(ip, port, file_path, window_size):
 
     print("DATA Finished")
 
-    # FIN avslutning
+    # FIN ending
+    #Connection teardown
     fin_packet = create_packet(0, 0, FLAG_FIN, 0)
     sock.sendto(fin_packet, addr)
     print("FIN packet is sent")

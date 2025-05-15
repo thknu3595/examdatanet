@@ -5,7 +5,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="175027f4-23a8-415a-ac47-ed1e5b22f8a5" name="Changes" comment="">
-      <change beforePath="$APPLICATION_HOME_DIR$/jbr/bin/Desktop/examdatanet/.idea/misc.xml" beforeDir="false" afterPath="$APPLICATION_HOME_DIR$/jbr/bin/Desktop/examdatanet/.idea/misc.xml" afterDir="false" />
       <change beforePath="$APPLICATION_HOME_DIR$/jbr/bin/Desktop/examdatanet/.idea/workspace.xml" beforeDir="false" afterPath="$APPLICATION_HOME_DIR$/jbr/bin/Desktop/examdatanet/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$APPLICATION_HOME_DIR$/jbr/bin/Desktop/examdatanet/application.py" beforeDir="false" afterPath="$APPLICATION_HOME_DIR$/jbr/bin/Desktop/examdatanet/application.py" afterDir="false" />
     </list>
@@ -57,7 +56,7 @@
       <workItem from="1747213688611" duration="7142000" />
       <workItem from="1747249022711" duration="4498000" />
       <workItem from="1747295997812" duration="3799000" />
-      <workItem from="1747334037764" duration="2697000" />
+      <workItem from="1747334037764" duration="4895000" />
     </task>
     <servers />
   </component>

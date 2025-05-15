@@ -232,20 +232,27 @@ def client(ip, port, file_path, window_size):
 #Entry point for and what to write in the command line.
 #Parses arguments and starts client or server
 def main():
+
+    #create an argument parser for command line
     parser = argparse.ArgumentParser()
+    # either server OR client must be chosen, not both
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-s', '--server', action='store_true')
     group.add_argument('-c', '--client', action='store_true')
+    # Common arguments for both client and server
     parser.add_argument('-i', '--ip', default='127.0.0.1')
     parser.add_argument('-p', '--port', type=int, default=8088)
     parser.add_argument('-f', '--file')
     parser.add_argument('-w', '--window', type=int, default=3)
     parser.add_argument('-d', '--discard', type=int, default=99999999)
 
+    # Parse the command-line arguments
     args = parser.parse_args()
 
+    #Server mode
     if args.server:
         server(args.ip, args.port, discard_seq=args.discard)
+    #Client mode
     else:
         if not args.file:
             print("Client mode requires a file path (-f)")
